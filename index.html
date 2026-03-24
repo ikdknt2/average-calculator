@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Cube Average Tool</title>
+<style>
+body {
+  font-family: sans-serif;
+  padding: 20px;
+}
+.row {
+  margin-bottom: 8px;
+}
+input[type="number"] {
+  width: 80px;
+}
+button {
+  margin-left: 5px;
+}
+.cut {
+  color: red;
+}
+.good {
+  color: green;
+}
+.warn {
+  color: orange;
+}
+</style>
+</head>
+<body>
+
+<h2>平均計算ツール</h2>
+
+<select id="mode">
+  <option value="ao5">Ao5</option>
+  <option value="mo3">Mo3</option>
+</select>
+
+<div id="inputs"></div>
+
+<hr>
+
+目標平均: <input type="number" id="target" step="0.01">
+
+<h3>結果</h3>
+<div id="result"></div>
+<div id="need"></div>
+<div id="wpa"></div>
+
+<script>
+const inputsDiv = document.getElementById("inputs")
+const resultDiv = document.getElementById("result")
+const needDiv = document.getElementById("need")
+const wpaDiv = document.getElementById("wpa")
+
+function createInputs(n) {
+  inputsDiv.innerHTML = ""
+  for (let i = 0; i < n; i++) {
+    const row = document.createElement("div")
+    row.className = "row"
+
+    row.innerHTML = `
+      <input type="number" step="0.01" class="time">
+      <button class="plus2">+2</button>
+      <button class="dnf">DNF</button>
+    `
+
+    const plus2 = row.querySelector(".plus2")
+    const dnf = row.querySelector(".dnf")
+
+    plus2.onclick = () => {
+      plus2.classList.toggle("active")
+      dnf.classList.remove("active")
+      update()
+    }
+
+    dnf.onclick = () => {
+      dnf.classList.toggle("active")
+      plus2.classList.remove("active")
+      update()
+    }
+
+    row.querySelector(".time").oninput = update
+
+    inputsDiv.appendChild(row)
+  }
+}
+
+function getTimes() {
+  const rows = document.querySelectorAll(".row")
+  return [...rows].map(r => {
+    const time = parseFloat(r.querySelector(".time").value)
+    const plus2 = r.querySelector(".plus2").classList.contains("active")
+    const dnf = r.querySelector(".dnf").classList.contains("active")
+    return { time, plus2, dnf }
+  })
+}
+
+function getValue(t) {
+  if (t.dnf) return Infinity
+  if (isNaN(t.time)) return null
+  return t.time + (t.plus2 ? 2 : 0)
+}
+
+function calcMo3(times) {
+  const v = times.map(getValue)
+  if (v.includes(null)) return "-"
+  if (v.includes(Infinity)) return "DNF"
+  return (v.reduce((a,b)=>a+b,0)/3).toFixed(2)
+}
+
+function calcAo5(times) {
+  const v = times.map(getValue)
+  if (v.includes(null)) return "-"
+  if (v.filter(x=>x===Infinity).length>=2) return "DNF"
+
+  const sorted = [...v].sort((a,b)=>a-b)
+  const trimmed = sorted.slice(1,-1)
+  return (trimmed.reduce((a,b)=>a+b,0)/3).toFixed(2)
+}
+
+function requiredMo3(times, target) {
+  const v = times.map(getValue)
+  if (v.includes(null)) return ""
+  if (v.includes(Infinity)) return "IMPOSSIBLE"
+
+  const x = 3*target - (v[0]+v[1])
+  return x < 0 ? "OK" : x.toFixed(2)
+}
+
+function requiredAo5(times, target) {
+  const base = times.map(getValue)
+  if (base.includes(null)) return ""
+  if (base.filter(v=>v===Infinity).length>=2) return "IMPOSSIBLE"
+
+  for (let x=0;x<=60;x+=0.01){
+    const arr = [...base,x].sort((a,b)=>a-b)
+    const t = arr.slice(1,-1)
+    const avg = (t[0]+t[1]+t[2])/3
+    if (avg <= target) return x.toFixed(2)
+  }
+  return "IMPOSSIBLE"
+}
+
+function calcWPA4(times, x){
+  const arr = [...times.map(getValue),x].sort((a,b)=>a-b)
+  const t = arr.slice(1,-1)
+  return (t[0]+t[1])/2
+}
+
+function requiredWPA(times,target){
+  const base = times.map(getValue)
+  if (base.includes(null)) return ""
+  if (base.includes(Infinity)) return "CHECK"
+
+  for(let x=0;x<=60;x+=0.01){
+    const w = calcWPA4(times,x)
+    if (w <= target) return x.toFixed(2)
+  }
+  return "IMPOSSIBLE"
+}
+
+function update(){
+  const mode = document.getElementById("mode").value
+  const times = getTimes()
+  const target = parseFloat(document.getElementById("target").value)
+
+  if(mode==="mo3"){
+    resultDiv.textContent = "Mo3: " + calcMo3(times)
+
+    if(times.length===2 && !isNaN(target)){
+      needDiv.textContent = "必要: " + requiredMo3(times,target)
+    }else{
+      needDiv.textContent = ""
+    }
+
+    wpaDiv.textContent = ""
+  }
+
+  if(mode==="ao5"){
+    resultDiv.textContent = "Ao5: " + calcAo5(times)
+
+    if(times.length===4 && !isNaN(target)){
+      needDiv.textContent = "必要: " + requiredAo5(times,target)
+    }else{
+      needDiv.textContent = ""
+    }
+
+    if(times.length===3 && !isNaN(target)){
+      wpaDiv.textContent = "4回目必要: " + requiredWPA(times,target)
+    }else{
+      wpaDiv.textContent = ""
+    }
+  }
+}
+
+document.getElementById("mode").onchange = ()=>{
+  createInputs(document.getElementById("mode").value==="ao5"?5:3)
+  update()
+}
+
+createInputs(5)
+</script>
+
+</body>
+</html>
