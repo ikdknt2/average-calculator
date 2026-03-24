@@ -8,6 +8,7 @@ const inputs = [
 
 const result = document.getElementById("result");
 const bpa = document.getElementById("bpa");
+const wpa = document.getElementById("wpa");
 
 // 入力イベント
 inputs.forEach((input, index) => {
@@ -27,9 +28,12 @@ inputs.forEach((input, index) => {
 function updateAll() {
   calcAO5();
   calcBPA();
+  calcWPA();
 }
 
+/////////////
 //ao5計算
+/////////////
 function calcAO5() {
   let values = [];
 
@@ -76,10 +80,12 @@ function calcAO5() {
   }
 
   const avg = numeric.reduce((a, b) => a + b, 0) / 3;
-
   result.textContent = avg.toFixed(2);
 }
 
+////////
+// BPA
+////////
 function calcBPA() {
   let values = [];
 
@@ -129,4 +135,49 @@ function calcBPA() {
   const avg = numeric.reduce((a, b) => a + b, 0) / 3;
 
   bpa.textContent = avg.toFixed(2);
+}
+
+////////
+// WPA
+////////
+function calcWPA() {
+  let values = [];
+
+  for (let input of inputs) {
+    const val = input.value.trim().toUpperCase();
+
+    if (val === "") continue;
+
+    if (val === "DNF") {
+      values.push("DNF");
+    } else {
+      const num = parseFloat(val);
+      if (!isNaN(num)) values.push(num);
+    }
+  }
+
+  // 4つ入力されてないと出さない
+  if (values.length !== 4) {
+    wpa.textContent = "未確定";
+    return;
+  }
+
+  const dnfCount = values.filter(v => v === "DNF").length;
+
+  // DNF1つ以上 → WPAは確定DNF
+  if (dnfCount >= 1) {
+    wpa.textContent = "DNF";
+    return;
+  }
+
+  // 数値だけ
+  let numeric = values.slice();
+
+  // 最小を削除（BEST除外）
+  numeric.sort((a, b) => a - b);
+  numeric.shift();
+
+  const avg = numeric.reduce((a, b) => a + b, 0) / 3;
+
+  wpa.textContent = avg.toFixed(2);
 }
