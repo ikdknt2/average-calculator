@@ -8,7 +8,7 @@ const inputs = [
 
 const result = document.getElementById("result");
 
-// 全入力にイベント追加
+// 入力ごとに自動更新
 inputs.forEach(input => {
   input.addEventListener("input", calcAO5);
 });
@@ -16,20 +16,20 @@ inputs.forEach(input => {
 function calcAO5() {
   const values = inputs.map(input => parseFloat(input.value));
 
-  // 未入力チェック
+  // 未入力がある場合
   if (values.some(v => isNaN(v))) {
-    result.textContent = "結果: 入力が足りません";
+    result.textContent = "未確定";
     return;
   }
 
   // ソート
   values.sort((a, b) => a - b);
 
-  // 最大と最小を除く
+  // 最大と最小を除外
   const trimmed = values.slice(1, 4);
 
   // 平均
   const avg = trimmed.reduce((a, b) => a + b, 0) / 3;
 
-  result.textContent = "結果: " + avg.toFixed(2);
+  result.textContent = avg.toFixed(2);
 }
