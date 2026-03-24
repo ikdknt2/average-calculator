@@ -7,12 +7,12 @@ const inputs = [
 ];
 
 const result = document.getElementById("result");
+const bpa = document.getElementById("bpa");
 
 // 入力イベント
 inputs.forEach((input, index) => {
-  input.addEventListener("input", calcAO5);
+  input.addEventListener("input", updateAll);
 
-  // Enterで次へ
   input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -23,6 +23,13 @@ inputs.forEach((input, index) => {
   });
 });
 
+//更新呼び出し
+function updateAll() {
+  calcAO5();
+  calcBPA();
+}
+
+//ao5計算
 function calcAO5() {
   let values = [];
 
@@ -71,4 +78,55 @@ function calcAO5() {
   const avg = numeric.reduce((a, b) => a + b, 0) / 3;
 
   result.textContent = avg.toFixed(2);
+}
+
+function calcBPA() {
+  let values = [];
+
+  for (let input of inputs) {
+    const val = input.value.trim().toUpperCase();
+
+    if (val === "") continue;
+
+    if (val === "DNF") {
+      values.push("DNF");
+    } else {
+      const num = parseFloat(val);
+      if (!isNaN(num)) values.push(num);
+    }
+  }
+
+  // 4つ入力されてないと出さない
+  if (values.length !== 4) {
+    bpa.textContent = "未確定";
+    return;
+  }
+
+  // DNF2つ以上 → BPAもDNF
+  const dnfCount = values.filter(v => v === "DNF").length;
+  if (dnfCount >= 2) {
+    bpa.textContent = "DNF";
+    return;
+  }
+
+  // 数値化（DNFは最大扱いのため一旦除外）
+  let numeric = values.filter(v => v !== "DNF");
+
+  // DNFが1つなら、それがWORSTなので除外される
+  if (dnfCount === 1) {
+    // 残り3つをそのまま平均
+    const avg = numeric.reduce((a, b) => a + b, 0) / 3;
+    bpa.textContent = avg.toFixed(2);
+    return;
+  }
+
+  // DNFなし → 最大を除外
+  numeric.sort((a, b) => a - b);
+
+  // 最大を削除
+  numeric.pop();
+
+  const avg = numeric.reduce((a, b) => a + b, 0) / 3;
+
+  bpa.textContent = avg.toFixed(2);
 }
