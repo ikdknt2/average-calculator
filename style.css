@@ -1,0 +1,33 @@
+body {
+  font-family: sans-serif;
+  padding: 20px;
+}
+
+.row {
+  margin-bottom: 8px;
+}
+
+input[type="number"] {
+  width: 80px;
+}
+
+button {
+  margin-left: 5px;
+}
+
+.active {
+  background: #333;
+  color: white;
+}
+
+.cut {
+  color: red;
+}
+
+.good {
+  color: green;
+}
+
+.warn {
+  color: orange;
+}
