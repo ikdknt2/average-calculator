@@ -24,58 +24,106 @@ inputs.forEach((input, index) => {
   });
 });
 
+//////////////
 //更新呼び出し
+//////////////
 function updateAll() {
-  calcAO5();
-  calcBPA();
-  calcWPA();
+  const values = getValues(); // ←共通で使う
+
+  calcAO5(values);
+  calcBPA(values);
+  calcWPA(values);
+  highlightBestWorst(values); // ←ここ！！
 }
 
-/////////////
-//ao5計算
-/////////////
-function calcAO5() {
+//////////
+// 値獲得
+//////////
+function getValues() {
   let values = [];
 
   for (let input of inputs) {
     const val = input.value.trim().toUpperCase();
 
-    if (val === "") {
-      result.textContent = "未確定";
-      return;
-    }
+    if (val === "") return []; // 未確定扱い
 
     if (val === "DNF") {
       values.push("DNF");
     } else {
       const num = parseFloat(val);
-      if (isNaN(num)) {
-        result.textContent = "未確定";
-        return;
-      }
+      if (isNaN(num)) return [];
       values.push(num);
     }
   }
 
-  // DNFの数を数える
+  return values;
+}
+
+
+//////////////
+// 色付け表示
+/////////////
+function highlightBestWorst(values) {
+  // 一旦リセット
+  inputs.forEach(input => {
+    input.style.backgroundColor = "";
+  });
+
+  // 5つ揃ってないなら何もしない
+  if (values.length !== 5) return;
+
   const dnfCount = values.filter(v => v === "DNF").length;
 
-  // DNFが2つ以上 → AO5はDNF
+  // DNF2つ以上なら全部無効
+  if (dnfCount >= 2) return;
+
+  // 数値とインデックスをセットで保持
+  let indexed = values.map((v, i) => ({
+    value: v,
+    index: i
+  }));
+
+  // DNFを最大扱い
+  indexed.sort((a, b) => {
+    if (a.value === "DNF") return 1;
+    if (b.value === "DNF") return -1;
+    return a.value - b.value;
+  });
+
+  // 最小（BEST）
+  const best = indexed[0];
+  // 最大（WORST）
+  const worst = indexed[indexed.length - 1];
+
+  // 色付け
+  inputs[best.index].style.backgroundColor = "lightgreen";
+  inputs[worst.index].style.backgroundColor = "lightcoral";
+}
+
+
+/////////////
+//ao5計算
+/////////////
+function calcAO5(values) {
+  if (values.length !== 5) {
+    result.textContent = "未確定";
+    return;
+  }
+
+  const dnfCount = values.filter(v => v === "DNF").length;
+
   if (dnfCount >= 2) {
     result.textContent = "DNF";
     return;
   }
 
-  // 数値だけ取り出してソート
   let numeric = values
     .filter(v => v !== "DNF")
     .sort((a, b) => a - b);
 
   if (dnfCount === 1) {
-    // DNF1つ → 最大扱いとして除外
     numeric = numeric.slice(0, 3);
   } else {
-    // DNFなし → 最小と最大を除外
     numeric = numeric.slice(1, 4);
   }
 
@@ -86,77 +134,38 @@ function calcAO5() {
 ////////
 // BPA
 ////////
-function calcBPA() {
-  let values = [];
-
-  for (let input of inputs) {
-    const val = input.value.trim().toUpperCase();
-
-    if (val === "") continue;
-
-    if (val === "DNF") {
-      values.push("DNF");
-    } else {
-      const num = parseFloat(val);
-      if (!isNaN(num)) values.push(num);
-    }
-  }
-
-  // 4つ入力されてないと出さない
+function calcBPA(values) {
   if (values.length !== 4) {
     bpa.textContent = "未確定";
     return;
   }
 
-  // DNF2つ以上 → BPAもDNF
   const dnfCount = values.filter(v => v === "DNF").length;
+
   if (dnfCount >= 2) {
     bpa.textContent = "DNF";
     return;
   }
 
-  // 数値化（DNFは最大扱いのため一旦除外）
   let numeric = values.filter(v => v !== "DNF");
 
-  // DNFが1つなら、それがWORSTなので除外される
   if (dnfCount === 1) {
-    // 残り3つをそのまま平均
     const avg = numeric.reduce((a, b) => a + b, 0) / 3;
     bpa.textContent = avg.toFixed(2);
     return;
   }
 
-  // DNFなし → 最大を除外
   numeric.sort((a, b) => a - b);
-
-  // 最大を削除
   numeric.pop();
 
   const avg = numeric.reduce((a, b) => a + b, 0) / 3;
-
   bpa.textContent = avg.toFixed(2);
 }
 
 ////////
 // WPA
 ////////
-function calcWPA() {
-  let values = [];
-
-  for (let input of inputs) {
-    const val = input.value.trim().toUpperCase();
-
-    if (val === "") continue;
-
-    if (val === "DNF") {
-      values.push("DNF");
-    } else {
-      const num = parseFloat(val);
-      if (!isNaN(num)) values.push(num);
-    }
-  }
-
-  // 4つ入力されてないと出さない
+function calcWPA(values) {
   if (values.length !== 4) {
     wpa.textContent = "未確定";
     return;
@@ -164,16 +173,13 @@ function calcWPA() {
 
   const dnfCount = values.filter(v => v === "DNF").length;
 
-  // DNF1つ以上 → WPAは確定DNF
   if (dnfCount >= 1) {
     wpa.textContent = "DNF";
     return;
   }
 
-  // 数値だけ
   let numeric = values.slice();
 
-  // 最小を削除（BEST除外）
   numeric.sort((a, b) => a - b);
   numeric.shift();
 
