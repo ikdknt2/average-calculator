@@ -24,28 +24,28 @@ inputs.forEach((input, index) => {
   });
 });
 
-//////////////
-//更新呼び出し
-//////////////
+////////////////
+// 更新
+////////////////
 function updateAll() {
-  const values = getValues(); // ←共通で使う
+  const values = getValues();
 
   calcAO5(values);
-  calcBPA(values);
-  calcWPA(values);
-  highlightBestWorst(values); // ←ここ！！
+  calcBPA();
+  calcWPA();
+  highlightBestWorst(values);
 }
 
-//////////
-// 値獲得
-//////////
+////////////////
+// 値取得（5個全部）
+////////////////
 function getValues() {
   let values = [];
 
   for (let input of inputs) {
     const val = input.value.trim().toUpperCase();
 
-    if (val === "") return []; // 未確定扱い
+    if (val === "") return [];
 
     if (val === "DNF") {
       values.push("DNF");
@@ -59,51 +59,32 @@ function getValues() {
   return values;
 }
 
-
-//////////////
-// 色付け表示
-/////////////
+////////////////
+// 色付け
+////////////////
 function highlightBestWorst(values) {
-  // 一旦リセット
-  inputs.forEach(input => {
-    input.style.backgroundColor = "";
-  });
+  inputs.forEach(input => input.style.backgroundColor = "");
 
-  // 5つ揃ってないなら何もしない
   if (values.length !== 5) return;
 
   const dnfCount = values.filter(v => v === "DNF").length;
-
-  // DNF2つ以上なら全部無効
   if (dnfCount >= 2) return;
 
-  // 数値とインデックスをセットで保持
-  let indexed = values.map((v, i) => ({
-    value: v,
-    index: i
-  }));
+  let indexed = values.map((v, i) => ({ value: v, index: i }));
 
-  // DNFを最大扱い
   indexed.sort((a, b) => {
     if (a.value === "DNF") return 1;
     if (b.value === "DNF") return -1;
     return a.value - b.value;
   });
 
-  // 最小（BEST）
-  const best = indexed[0];
-  // 最大（WORST）
-  const worst = indexed[indexed.length - 1];
-
-  // 色付け
-  inputs[best.index].style.backgroundColor = "lightgreen";
-  inputs[worst.index].style.backgroundColor = "lightcoral";
+  inputs[indexed[0].index].style.backgroundColor = "lightgreen";
+  inputs[indexed[4].index].style.backgroundColor = "lightcoral";
 }
 
-
-/////////////
-//ao5計算
-/////////////
+////////////////
+// AO5
+////////////////
 function calcAO5(values) {
   if (values.length !== 5) {
     result.textContent = "未確定";
@@ -117,9 +98,7 @@ function calcAO5(values) {
     return;
   }
 
-  let numeric = values
-    .filter(v => v !== "DNF")
-    .sort((a, b) => a - b);
+  let numeric = values.filter(v => v !== "DNF").sort((a, b) => a - b);
 
   if (dnfCount === 1) {
     numeric = numeric.slice(0, 3);
@@ -131,13 +110,30 @@ function calcAO5(values) {
   result.textContent = avg.toFixed(2);
 }
 
-////////
-// BPA
-////////
-function calcBPA(values) {
-  if (values.length !== 4) {
+////////////////
+// BPA（1〜4）
+////////////////
+function calcBPA() {
+  if (inputs[3].value.trim() === "") {
     bpa.textContent = "未確定";
     return;
+  }
+
+  let values = [];
+
+  for (let i = 0; i < 4; i++) {
+    const val = inputs[i].value.trim().toUpperCase();
+
+    if (val === "DNF") {
+      values.push("DNF");
+    } else {
+      const num = parseFloat(val);
+      if (isNaN(num)) {
+        bpa.textContent = "未確定";
+        return;
+      }
+      values.push(num);
+    }
   }
 
   const dnfCount = values.filter(v => v === "DNF").length;
@@ -162,28 +158,37 @@ function calcBPA(values) {
   bpa.textContent = avg.toFixed(2);
 }
 
-////////
-// WPA
-////////
-function calcWPA(values) {
-  if (values.length !== 4) {
+////////////////
+// WPA（1〜4）
+////////////////
+function calcWPA() {
+  if (inputs[3].value.trim() === "") {
     wpa.textContent = "未確定";
     return;
   }
 
-  const dnfCount = values.filter(v => v === "DNF").length;
+  let values = [];
 
-  if (dnfCount >= 1) {
-    wpa.textContent = "DNF";
-    return;
+  for (let i = 0; i < 4; i++) {
+    const val = inputs[i].value.trim().toUpperCase();
+
+    if (val === "DNF") {
+      wpa.textContent = "DNF";
+      return;
+    }
+
+    const num = parseFloat(val);
+    if (isNaN(num)) {
+      wpa.textContent = "未確定";
+      return;
+    }
+
+    values.push(num);
   }
 
-  let numeric = values.slice();
+  values.sort((a, b) => a - b);
+  values.shift();
 
-  numeric.sort((a, b) => a - b);
-  numeric.shift();
-
-  const avg = numeric.reduce((a, b) => a + b, 0) / 3;
-
+  const avg = values.reduce((a, b) => a + b, 0) / 3;
   wpa.textContent = avg.toFixed(2);
 }
